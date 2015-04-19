@@ -22,10 +22,10 @@ var v8_util = process.binding('v8_util');
 
 function Tray(option) {
   if (typeof option != 'object')
-    throw new String('Invalid option');
+    throw new TypeError('Invalid option');
 
   if (!option.hasOwnProperty('title') && !option.hasOwnProperty('icon'))
-    throw new String("Must set 'title' or 'icon' field in option");
+    throw new TypeError("Must set 'title' or 'icon' field in option");
 
   if (!option.hasOwnProperty('title'))
     option.title = '';
@@ -42,12 +42,17 @@ function Tray(option) {
     option.alticon = nw.getAbsolutePath(option.alticon);
   }
 
+  if (option.hasOwnProperty('iconsAreTemplates'))
+    option.iconsAreTemplates = Boolean(option.iconsAreTemplates);
+  else
+    option.iconsAreTemplates = true;
+
   if (option.hasOwnProperty('tooltip'))
     option.tooltip = String(option.tooltip);
 
   if (option.hasOwnProperty('click')) {
     if (typeof option.click != 'function') {
-      throw new String("'click' must be a valid Function");
+      throw new TypeError("'click' must be a valid Function");
     } else {
       this.click = option.click;
     }
@@ -55,7 +60,7 @@ function Tray(option) {
 
   if (option.hasOwnProperty('menu')) {
     if (v8_util.getConstructorName(option.menu) != 'Menu')
-      throw new String("'menu' must be a valid Menu");
+      throw new TypeError("'menu' must be a valid Menu");
 
     // Transfer only object id
     v8_util.setHiddenValue(this, 'menu', option.menu);
@@ -100,7 +105,15 @@ Tray.prototype.__defineSetter__('icon', function(val) {
 Tray.prototype.__defineSetter__('alticon', function(val) {
   v8_util.getHiddenValue(this, 'option').shadowAlticon = String(val);
   var real_path = val == '' ? '' : nw.getAbsolutePath(val);
-  this.handleSetter('alticon', 'SetAlticon', String, real_path);
+  this.handleSetter('alticon', 'SetAltIcon', String, real_path);
+});
+
+Tray.prototype.__defineGetter__('iconsAreTemplates', function() {
+  return this.handleGetter('iconsAreTemplates');
+});
+
+Tray.prototype.__defineSetter__('iconsAreTemplates', function(val) {
+  this.handleSetter('iconsAreTemplates', 'SetIconsAreTemplates', Boolean, val);
 });
 
 Tray.prototype.__defineGetter__('tooltip', function() {
@@ -117,7 +130,7 @@ Tray.prototype.__defineGetter__('menu', function() {
 
 Tray.prototype.__defineSetter__('menu', function(val) {
   if (v8_util.getConstructorName(val) != 'Menu')
-    throw new String("'menu' property requries a valid Menu");
+    throw new TypeError("'menu' property requries a valid Menu");
 
   v8_util.setHiddenValue(this, 'menu', val);
   nw.callObjectMethod(this, 'SetMenu', [ val.id ]);
